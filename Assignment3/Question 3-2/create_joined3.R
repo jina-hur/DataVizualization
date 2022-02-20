@@ -36,7 +36,6 @@ joined3 <- left_join(cum, data_sep2, by = "player_id") %>%
   mutate(age_start = as.numeric(age_start)) %>%
   mutate(year_start = as.numeric(year_start)) %>%
   mutate(year = as.numeric(year)) %>%
-  mutate(age = age_start + year - year_start) %>%
-  filter(year_end = 202playoff_wins != 0)
+  mutate(age = age_start + year - year_start)
 
 write_csv(joined3, "/Users/jinyounghur/Documents/2022-winter-dataviz/hw3-3/joined3.csv")
