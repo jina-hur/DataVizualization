@@ -1,2 +1,2 @@
-# DataVizualization
-Assignment 3 Question 2
+# DataViz Assignment3
+Question 2
