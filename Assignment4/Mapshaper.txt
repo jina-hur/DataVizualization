@@ -1,0 +1,25 @@
+##State
+$ proj albersusa
+[proj] Removed 22 paths containing unprojectable vertices.
+
+##County
+$ proj albersusa
+[proj] Removed 477 paths containing unprojectable vertices.
+
+#pop_18_poverty
+$ each 'fips=String(Geo_FIPS)
+$ each 'fips=String(Geo_FIPS).padStart(5,"0")
+
+##County
+$ join pop_18_poverty keys=GEOID,fips
+[join] Joined data from 3,220 source records to 3,220 target records
+[join] 13 target records received no data
+
+##County
+$ points
+[points] 91 of 3,233 points are null
+
+$ style r=Math.sqrt(pop_18_in_poverty/400) fill=orange
+
+##State
+style fill=#ecedee stroke=#000
