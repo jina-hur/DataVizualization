@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            margin-right: auto;
+            margin-left: 10px;
+            margin-top: 10px;
+            margin-bottom: 30px;
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        .source {
+            color: darkgray;
+            font-size: 18px;
+            margin: 50px;
+            margin-left: auto;
+        }
+
+        .x .tick line {
+            stroke: rgba(0, 0, 0, .2);
+        }
+
+        .y .tick line {
+            stroke: rgba(0, 0, 0, .2);
+        }
+
+        .y .domain {
+            display: none;
+        }
+
+        svg {
+            overflow: visible;
+            max-width: 1050px;
+        }
+
+        .filler h2 {
+            text-align: center;
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            font-size: 50px;
+            color: darkcyan;
+        }
+
+        .filler p {
+            font-size: 18px;
+            text-align: left;
+            margin: 10px auto;
+            line-height: 1.1;
+            max-width: 1000px;
+        }
+
+        #scrolly-overlay .scrolly {
+            font-size: 24px;
+            max-width: 60rem;
+            margin: 3rem auto;
+            /* padding: 2rem; */
+            position: relative;
+        }
+
+        #scrolly-overlay .scrolly article {
+            padding: 0;
+            max-width: 30rem;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        #scrolly-overlay .scrolly article .step {
+            min-height: 1px;
+            margin-bottom: 1rem;
+        }
+
+        #scrolly-overlay .scrolly figure.sticky {
+            position: sticky;
+            width: 100%;
+            height: 25vh;
+            margin: 0;
+            top: 5vh;
+            left: 0;
+        }
+
+        .spacer {
+            height: 500px;
+        }
+    </style>
+</head>
+
+<body>
+    <section class='filler'>
+
+        <h2>Start Scrolling!</h2>
+
+    </section>
+
+    <section id='scrolly-overlay'>
+
+        <div class='scrolly'>
+            <figure class='sticky'>
+                <div class="chart-container">
+
+                    <h1 class="headline">
+                        US COVID Cases as of <span class='highlight'>January 22, 2020</span>
+                    </h1>
+            
+                    <svg width="1050px" height="575px">
+                    </svg>
+
+                <p class="source">Source: CSSE at Johns Hopkins University</p>
+            </figure>
+
+            <article>
+            </article>
+
+        </div>
+
+    </section>
+
+    <section class='filler'>
+        <h2>End. Keep scrolling!</h2>
+ 
+        <div class="spacer"></div>
+        <p>Covid-19 cases in the US peak during cold seasons. </p>
+        <p>In 2021, Covid cases grew exponentially from early November to early February. There was a record-setting spike in the coronavirus cases during the winter 2022 again.</p>
+
+    </section>
+</body>
+
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+<script src="https://unpkg.com/enter-view@1.0.0/enter-view.min.js"></script>
+
+
+<script>
+    console.log(d3)
+
+    let width = 1050;
+    let height = 550;
+
+    let svg = d3.select("svg");
+    let scroll_steps = d3.select("article");
+
+    d3.csv("time_series_covid19_confirmed_global.csv").then(function (data) {
+        console.log(data);
+
+        data = data.filter( row => row["Country/Region"] == "US")[0]
+
+        data = Object.keys(data).map(date => ({ date, cases: data[date] }))
+            .filter( row => !["Province/State", "Country/Region", "Lat", "Long"].includes(row.date) )
+
+        data.forEach(function(row) {
+            [month, day, year] = row.date.split("/")
+            month = +month
+            month = (month < 10 ? "0" + month : month)
+            day = +day
+            day = (day < 10 ? "0" + day : day)
+            row.numericDate = +("20" + year + month + day)
+            row.dateString = "20" + year + "-" + month + "-" + day + "T00:00"
+            row.date = new Date( row.dateString )
+            row.prettyDate = row.date.toLocaleDateString("en-US", {month: "long", day: "numeric", year: "numeric"})
+            row.cases = +row.cases
+            row.country = "usa"
+
+            scroll_steps.append("div")
+                .attr("class", "step")
+                .attr("data-numeric-date", row.numericDate)
+                .attr("data-pretty-date", row.prettyDate)
+        });
+
+        let margin = { top: 10, right: 0, bottom: 10, left: 0 };
+
+        let x = d3.scaleTime()
+            .domain(d3.extent(data.map( d => d.date )))
+            .range([margin.left, width - margin.right])
+
+        let y = d3.scaleLinear()
+            .domain(d3.extent(data.map( d => d.cases )))
+            .range([height - margin.bottom, margin.top])
+
+        let line = d3.line()
+            .x( d => x(d.date) )
+            .y( d => y(d.cases) )
+
+        let yAxisSettings = d3.axisRight(y)
+            .ticks(10) //approx how many ticks, the function will not necesarily give you that number
+            .tickSize(width) //size of tick lines
+            .tickPadding(10) //distance from tick labels to tick marks
+
+        let xAxisSettings = d3.axisBottom(x)
+            .ticks(10)
+            .tickSize(10)
+            .tickPadding(10)
+
+        let xAxisTicks = svg.append("g")
+            .attr("class", "x axis")
+            .call(xAxisSettings)
+            .attr("transform", `translate(0,${height - margin.bottom})`)
+        
+        let yAxisTicks = svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxisSettings)
+            .attr("transform", `translate(${margin.left},0)`)
+        
+        let line_path = svg.append("path")
+            .data([data.filter(function(d) { return d.cases == 1 })])
+            .attr("class", "case_count_line")
+            .attr("d", line)
+            .style("fill", "none")
+            .style("stroke-width", "2px")
+            .style("stroke", "purple")
+
+        let labels = svg.append("text")
+            .datum([data[1]])
+            .attr("class", "case_count_text")
+            .text(d => d[0].cases)
+            .attr("x", d => x(d[0].date))
+            .attr("y", d => y(d[0].cases))
+            .attr("dx", "5")
+            .attr("dy", "-10")
+            // .attr("style", "text-shadow: 1px 1px 2px white")
+            .style("font-size", "15px")
+            .style("stroke", "purple")
+
+        let formatComma = d3.format(",")
+
+        function update(max_date) {
+            var filtered_data = data.filter(function(d) { 
+                return (d.numericDate <= max_date)
+            })
+
+            d3.selectAll(".case_count_line")
+                .data([filtered_data])
+                .attr("d", line)
+            
+            d3.selectAll(".case_count_text")
+                .data([filtered_data[filtered_data.length - 1]])
+                .text(d => formatComma(d.cases))
+                .attr("x", d => x(d.date))
+                .attr("y", d => y(d.cases))
+        }
+
+        const container = d3.select('#scrolly-overlay');
+        const stepSel = container.selectAll('.step');
+
+        function init() {
+
+            enterView({ 
+                selector: stepSel.nodes(),
+                offset: 0.5, 
+                enter: el => { 
+                    d3.select(".highlight").html(d3.select(el).attr('data-pretty-date'))
+                    update(+d3.select(el).attr('data-numeric-date'))
+                },
+                exit: el => { 
+                    d3.select(".highlight").html(d3.select(el).attr('data-pretty-date'))
+                    update(+d3.select(el).attr('data-numeric-date'))
+                }
+            });
+
+        }
+
+        init();
+        
+    })
+    
+
+</script>
